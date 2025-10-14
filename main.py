@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from fastapi import HTTPException
+from routes.user import user
+import models.users as users
+
 
 app = FastAPI()
 
@@ -13,16 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class usuario(BaseModel):
-    nombre: str
-    apellido: str
-    correo: str
-    telefono: str
-    contraseña: str
+app.include_router(user)
 
-@app.post("/registro")
-def registrar_usuario(user: usuario):
-    print(user.dict())
-    if not user.nombre or not user.apellido or not user.correo or not user.telefono or not user.contraseña:
-        raise HTTPException(status_code=400, detail="Todos los campos son obligatorios.")
-    return {"mensaje": f"Usuario {user.nombre} registrado exitosamente."}
+

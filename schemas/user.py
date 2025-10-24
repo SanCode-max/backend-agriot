@@ -1,11 +1,12 @@
+from bson import ObjectId
+
 def userEntity(item) -> dict:
     return{
-        "id": item["id"],
         "nombre": item["nombre"],
         "apellido": item["apellido"],
         "telefono": item["telefono"],
         "correo": item["correo"],
-        "contraseña": item["contraseña"]
+        "password": item["password"]
     }
 
 def listUser(entity) -> list:

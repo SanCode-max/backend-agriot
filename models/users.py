@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
+from typing import Optional
 
 class usuario(BaseModel):
-    id: int
     nombre: str
     apellido: str
     telefono: str
     correo: str
-    contraseña: str
+    password: str

@@ -1,5 +1,5 @@
 from fastapi import APIRouter,HTTPException
-from config.conexion import DB_NAME
+from config.conexion import db
 from schemas.user import userEntity,listUser
 from models.users import usuario
 
@@ -10,11 +10,10 @@ def conection():
     return{"mensaje": "Conexion exitosa con MongoDB"}
 
 @user.post("/registro")
-def registrar_usuario(usuario: dict):   
+def registrar_usuario(user_data : usuario):   
     try:
-        coleccion = DB_NAME("usuarios")
-        resultado = coleccion.insert_one(user)
-        return {"mensaje": "Usuario registrado exitosamente", "id": str(resultado.inserted_id)}
+        coleccion = db["usuarios"]
+        resultado = coleccion.insert_one(user_data.dict())
+        return {"mensaje": f"Usuario {user_data.nombre} registrado exitosamente", "id": str(resultado.inserted_id)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al registrar: {e}")
-    

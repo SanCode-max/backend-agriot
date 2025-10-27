@@ -1,17 +1,17 @@
 from fastapi import APIRouter,HTTPException, BackgroundTasks
 from config.conexion import db
-from models.users import usuario
-from utils.token_reset import crear_token,verificar_token
+from models.users import usuario, Requisito_reestablecer_password
+from utils.token import crear_token,verificar_token
 from utils.token_reset import enviar_email
 from routes.user import get_contraseña_hash
 
-user = APIRouter
+restablecer = APIRouter()
 
 #Enviar link de restablecimiento de contraseña
-@user.post("/request_password")
-async def solicitar_reset_password(request: dict, background_tasks: BackgroundTasks):
+@restablecer.post("/request_password")
+async def solicitar_reset_password(request: Requisito_reestablecer_password, background_tasks: BackgroundTasks):
     try:
-        correo = request.get("correo")
+        correo = request.correo
         coleccion = db["usuarios"]
         usuario_encontrado = coleccion.find_one({"correo": correo})
         
@@ -27,7 +27,7 @@ async def solicitar_reset_password(request: dict, background_tasks: BackgroundTa
         raise HTTPException(status_code=500, detail=f"Error:{e}")
 
 #Cambiar la contraseña
-@user.post("/reset_password")
+@restablecer.post("/reset_password")
 def resetear_password(data : dict):
     try:
         token = data.get("token")

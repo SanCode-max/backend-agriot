@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-from fastapi_mail import HTTPException,fastmail,MessageSchema,ConnectionConfig
+from fastapi_mail import FastMail,MessageSchema,ConnectionConfig
 from pydantic import EmailStr
 import jwt
 from datetime import datetime, timedelta
@@ -13,7 +13,7 @@ conf = ConnectionConfig(
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD"),
     MAIL_FROM = os.getenv("MAIL_FROM"),
     MAIL_PORT = 587,
-    MAIL_SERVER="smtp.gamil.com",
+    MAIL_SERVER="smtp.gmail.com",
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
@@ -32,5 +32,5 @@ async def enviar_email(correo: EmailStr, link: str):
         """,
         subtype="html",
     )
-    fm = fastmail(conf)
+    fm = FastMail(conf)
     await fm.send_message(mensaje)

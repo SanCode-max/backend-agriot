@@ -1,4 +1,4 @@
-from pydantic import BaseModel,Field
+from pydantic import BaseModel,EmailStr
 from typing import Optional
 
 class usuario(BaseModel):
@@ -7,3 +7,10 @@ class usuario(BaseModel):
     telefono: str
     correo: str
     password: str
+
+class Requisito_reestablecer_password(BaseModel):
+    correo: str
+
+class password_reseteada(BaseModel):
+    token: str
+    nueva_password: str

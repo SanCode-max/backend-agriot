@@ -19,10 +19,10 @@ async def solicitar_reset_password(request: Requisito_reestablecer_password, bac
             return {"detail": "El enlace se ha enviado al correo suministrado"}
         
         token = crear_token(correo)
-        link = f"http://localhost:3000/Restauracion?token={token}"
+        link = f"http://localhost:3000/Nueva_contraseña?token={token}"
         background_tasks.add_task(enviar_email, correo, link)
 
-        return {"details": "Se ha generado un enlace de restablecimiento."}
+        return {"detail": "A tu correo se ha enviado un enlace para restablecer la contraseña"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error:{e}")
 
@@ -45,7 +45,7 @@ def resetear_password(data : dict):
         nueva_contra = get_contraseña_hash(nueva_password[:72])
         coleccion.update_one({"correo": correo}, {"$set": {"password": nueva_contra}})
         
-        return {"details": "Contraseña actualizada exitosamente"}
+        return {"detail": "Contraseña actualizada exitosamente"}
     
     except HTTPException as e:
         raise e

@@ -25,7 +25,8 @@ async def enviar_email(correo: EmailStr, link: str):
         subject= "Restablecimiento de contraseña",
         recipients=[correo],
         body=f"""
-        <h2>Has solicitado un restablecimeinto  de contraseña</h2>
+        <h2>Solucitud de restablecimiento de contraseña</h2>
+        <p>Desde la asocioción AGRIOT le brindamos la bienvenida.</p>
         <p>Haz click en el siguiente enlace para restablecer tu contraseña:</p>
         <a href="{link}">{link}</a>
         <p>Este link expirará en 1 hora.</p>

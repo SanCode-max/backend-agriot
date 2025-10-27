@@ -12,5 +12,6 @@ class Requisito_reestablecer_password(BaseModel):
     correo: str
 
 class password_reseteada(BaseModel):
-    token: str
     nueva_password: str
+    token: str
+    confirmacion_password: str

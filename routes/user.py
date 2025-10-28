@@ -68,7 +68,11 @@ def login_user(user_data: dict):
         if not verificar_Contraseña(user_data.get("password"), password_guardada):
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
         return {
-            "mensaje": f"Bienvenido {usuario_encontrado.get('nombre')}"
+            "mensaje": f"Bienvenido {usuario_encontrado.get('nombre')}",
+            "usuario": {
+                "nombre": usuario_encontrado.get("nombre"),
+                "correo": usuario_encontrado.get("correo")
+            }
         }
     except HTTPException as e:
         raise e
@@ -76,4 +80,17 @@ def login_user(user_data: dict):
         raise HTTPException(status_code=500, detail=f"Error al ingresar: {e}")
     
 
-    
+@user.get("/usuario/{correo}")
+def obtener_usuarios(correo: str):
+    try:
+        coleccion = db["usuarios"]
+        usuario_encontrado= coleccion.find_one({"correo": correo})
+        if not usuario_encontrado:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        return {
+            "nombre":usuario_encontrado["nombre"]
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al encontrar usuario: {e}")

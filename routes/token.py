@@ -16,13 +16,14 @@ async def solicitar_reset_password(request: Requisito_reestablecer_password, bac
         usuario_encontrado = coleccion.find_one({"correo": correo})
         
         if not usuario_encontrado:
-            return {"detail": "El enlace se ha enviado al correo suministrado"}
+            raise HTTPException(status_code=404, detail="El correo no se encuentra registrado en nuestra base de datos")
+            
         
         token = crear_token(correo)
         link = f"http://localhost:3000/Nueva_contraseña?token={token}"
         background_tasks.add_task(enviar_email, correo, link)
-
         return {"detail": "A tu correo se ha enviado un enlace para restablecer la contraseña"}
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error:{e}")
 

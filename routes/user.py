@@ -59,7 +59,7 @@ def login_user(user_data: dict):
         usuario_encontrado = coleccion.find_one({"correo": user_data.get("correo")})
 
         if not usuario_encontrado:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            raise HTTPException(status_code=404, detail="Usuario no encontrado, por favor registrese")
         
         #Obtener contraseña guardada
         password_guardada = usuario_encontrado.get("password")

@@ -1,8 +1,9 @@
 from fastapi import APIRouter,HTTPException
 from config.conexion import db
 from schemas.user import userEntity,listUser
-from models.users import usuario
+from models.users import usuario, Cultivos
 from passlib.context import CryptContext
+import uuid
 
 user = APIRouter()
 
@@ -80,17 +81,64 @@ def login_user(user_data: dict):
         raise HTTPException(status_code=500, detail=f"Error al ingresar: {e}")
     
 
-@user.get("/usuario/{correo}")
-def obtener_usuarios(correo: str):
+@user.get("/cultivos/{correo}")
+def obtener_cultivos(correo: str):
     try:
         coleccion = db["usuarios"]
-        usuario_encontrado= coleccion.find_one({"correo": correo})
+
+        usuario_encontrado = coleccion.find_one({"correo": correo})
+
         if not usuario_encontrado:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
         return {
-            "nombre":usuario_encontrado["nombre"]
+            "nombre": usuario_encontrado["nombre"],
+            "cultivos": usuario_encontrado.get("cultivos", [])
         }
+
     except HTTPException as e:
         raise e
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al encontrar usuario: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al encontrar usuario: {e}"
+        )
+    
+@user.post("/cultivos")
+def registrar_cultivo(user_data: Cultivos):
+
+    try:
+
+        coleccion = db["usuarios"]
+
+        cultivo = {
+            "id": str(uuid.uuid4()),
+            "nombre": user_data.nombre,
+            "fechaSiembra": user_data.fechaSiembra,
+            "fechaCosecha": user_data.fechaCosecha,
+            "estado": user_data.estado,
+            "ubicacion": user_data.ubicacion
+        }
+
+        resultado = coleccion.update_one(
+            {"correo": user_data.correo},
+            {"$push": {"cultivos": cultivo}}
+        )
+
+        if resultado.matched_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Usuario no encontrado"
+            )
+
+        return {"mensaje": "Cultivo registrado exitosamente"}
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al registrar cultivo: {e}"
+        )

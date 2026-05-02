@@ -21,9 +21,12 @@ class Cultivos(BaseModel):
     correo: EmailStr
     nombre: str
     fechaSiembra: str
-    fechaCosecha: str
-    estado: Optional[str]
-    ubicacion: Optional[str]
+    fechaCosecha: Optional[str] = None
+    estado: Optional[str] = None
+    ubicacion: Optional[str] = None
+    observaciones: Optional[str] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
 class PerfilUpdate(BaseModel):
     nombre: Optional[str] = None

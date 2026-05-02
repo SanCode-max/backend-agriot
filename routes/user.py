@@ -219,7 +219,10 @@ def registrar_cultivo(user_data: Cultivos):
             "fechaSiembra": user_data.fechaSiembra,
             "fechaCosecha": user_data.fechaCosecha,
             "estado": user_data.estado,
-            "ubicacion": user_data.ubicacion
+            "ubicacion": user_data.ubicacion,
+            "observaciones": user_data.observaciones,
+            "latitud": user_data.latitud,
+            "longitud": user_data.longitud
         }
 
         resultado = coleccion.update_one(
@@ -233,7 +236,7 @@ def registrar_cultivo(user_data: Cultivos):
                 detail="Usuario no encontrado"
             )
 
-        return {"mensaje": "Cultivo registrado exitosamente"}
+        return {"mensaje": "Cultivo registrado exitosamente", "id": cultivo["id"]}
 
     except HTTPException as e:
         raise e

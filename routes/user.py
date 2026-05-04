@@ -236,7 +236,7 @@ def registrar_cultivo(user_data: Cultivos):
                 detail="Usuario no encontrado"
             )
 
-        return {"mensaje": "Cultivo registrado exitosamente", "id": cultivo["id"]}
+        return {"mensaje": "Cultivo registrado exitosamente"}
 
     except HTTPException as e:
         raise e

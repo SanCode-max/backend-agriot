@@ -9,6 +9,11 @@ class usuario(BaseModel):
     password: str
 
 
+class LoginRequest(BaseModel):
+    correo: EmailStr
+    password: str
+
+
 class Requisito_reestablecer_password(BaseModel):
     correo: EmailStr
 

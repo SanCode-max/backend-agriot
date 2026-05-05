@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-
+import cloudinary.uploader
 import aiofiles
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from passlib.context import CryptContext
@@ -191,29 +191,35 @@ async def subir_foto(correo: str, foto: UploadFile = File(...)):
         if not usuario_encontrado:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-        extension = foto.filename.split(".")[-1]
-        nombre_archivo = f"{correo.replace('@', '_')}.{extension}"
-        ruta_guardado = f"uploads/{nombre_archivo}"
 
         contenido = await foto.read()
-        async with aiofiles.open(ruta_guardado, "wb") as buffer:
-            await buffer.write(contenido)
 
-        ruta_foto = f"{PUBLIC_API_BASE}/uploads/{nombre_archivo}"
+        nombre_limpio = correo.replace('@', '_').replace('.', '_')
+        
+        upload_result = cloudinary.uploader.upload(
+            contenido,
+            public_id=f"perfiles/{nombre_limpio}", 
+            overwrite=True,
+            resource_type="image"
+        )
 
+        ruta_foto = upload_result.get("secure_url")
+
+        # 5. Actualizar la base de datos con la URL persistente
         await coleccion.update_one(
             {"correo": correo},
             {"$set": {"foto": ruta_foto}},
         )
 
         return {
-            "mensaje": "Foto actualizada correctamente",
+            "mensaje": "Foto actualizada correctamente en la nube",
             "foto": ruta_foto,
         }
 
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Error detalle: {e}")
         raise HTTPException(status_code=500, detail=f"Error al subir foto: {e}")
 
 

@@ -24,7 +24,10 @@ If the user writes in Spanish, respond fully in Spanish.
 If the user writes in English, respond fully in English.
 Be concise, clear, and supportive. Encourage critical thinking and personal growth."""
 
-MODEL_NAME = "gemini-1.5-flash"
+# `gemini-1.5-flash` is often retired on the consumer API; 2.0 Flash works with AI Studio keys.
+MODEL_NAME = "gemini-2.0-flash"
+
+logger = logging.getLogger(__name__)
 
 chat_router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -57,14 +60,17 @@ def _call_gemini(message: str, history: list[ChatHistoryItem]) -> str:
     response = chat_session.send_message(message)
 
     if response.candidates:
-        parts = response.candidates[0].content.parts
+        cand = response.candidates[0]
+        parts = cand.content.parts
         texts = [p.text for p in parts if getattr(p, "text", None)]
         if texts:
-            return "".join(texts)
+            out = "".join(texts).strip()
+            if out:
+                return out
 
     text = getattr(response, "text", None)
-    if text:
-        return text
+    if text and str(text).strip():
+        return str(text).strip()
 
     raise RuntimeError("The model did not return any text.")
 
@@ -73,8 +79,11 @@ def _call_gemini(message: str, history: list[ChatHistoryItem]) -> str:
 async def chat_endpoint(body: ChatRequest):
     try:
         reply = await asyncio.to_thread(_call_gemini, body.message, body.history)
+        if not reply or not str(reply).strip():
+            raise RuntimeError("Empty model reply")
         return {"reply": reply}
     except Exception:
+        logger.exception("Chat request failed")
         return JSONResponse(
             status_code=500,
             content={"error": "Unable to complete the chat request."},

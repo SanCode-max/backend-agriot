@@ -18,7 +18,7 @@ _DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",
     "https://frontend-agriot.vercel.app",
     "https://*.vercel.app",
-    "https://frontend-agriot-santiago-torres-projects-ec92f9fd.vercel.app/",
+    "https://frontend-agriot-santiago-torres-projects-ec92f9fd.vercel.app",
 ]
 
 

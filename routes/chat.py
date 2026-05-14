@@ -13,8 +13,16 @@ import os
 from typing import Literal
 
 import google.generativeai as genai
+import grpc
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from google.api_core.exceptions import (
+    Forbidden,
+    GoogleAPICallError,
+    PermissionDenied,
+    ResourceExhausted,
+    Unauthenticated,
+)
 from pydantic import BaseModel, Field
 
 SYSTEM_PROMPT = """You are a helpful, ethical, and autonomous AI assistant integrated into a Knowledge Management platform.
@@ -28,6 +36,15 @@ Be concise, clear, and supportive. Encourage critical thinking and personal grow
 MODEL_NAME = "gemini-2.0-flash"
 
 logger = logging.getLogger(__name__)
+
+_QUOTA_EXCEEDED_BODY = {
+    "error": "quota_exceeded",
+    "reply": "El servicio de IA está temporalmente no disponible. Por favor intenta más tarde.",
+}
+_INVALID_KEY_BODY = {
+    "error": "invalid_key",
+    "reply": "El asistente no está configurado correctamente.",
+}
 
 chat_router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -43,7 +60,7 @@ class ChatRequest(BaseModel):
 
 
 def _call_gemini(message: str, history: list[ChatHistoryItem]) -> str:
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = (os.environ.get("GEMINI_API_KEY") or "").strip()
     if not api_key:
         raise RuntimeError("Chat service is not configured.")
 
@@ -75,13 +92,87 @@ def _call_gemini(message: str, history: list[ChatHistoryItem]) -> str:
     raise RuntimeError("The model did not return any text.")
 
 
+def _is_quota_exceeded(exc: Exception) -> bool:
+    if isinstance(exc, ResourceExhausted):
+        return True
+    if isinstance(exc, GoogleAPICallError) and getattr(exc, "grpc_status_code", None) == grpc.StatusCode.RESOURCE_EXHAUSTED:
+        return True
+    if isinstance(exc, grpc.RpcError) and exc.code() == grpc.StatusCode.RESOURCE_EXHAUSTED:
+        return True
+    msg = str(exc).lower()
+    return "429" in msg and "quota" in msg
+
+
+def _is_auth_key_error(exc: Exception) -> bool:
+    if isinstance(exc, (Unauthenticated, PermissionDenied, Forbidden)):
+        return True
+    if isinstance(exc, grpc.RpcError) and exc.code() in (
+        grpc.StatusCode.UNAUTHENTICATED,
+        grpc.StatusCode.PERMISSION_DENIED,
+    ):
+        return True
+    return False
+
+
 @chat_router.post("/chat")
 async def chat_endpoint(body: ChatRequest):
+    if not (os.environ.get("GEMINI_API_KEY") or "").strip():
+        logger.warning("Chat request rejected: GEMINI_API_KEY is missing or empty")
+        return JSONResponse(status_code=503, content=_INVALID_KEY_BODY)
+
     try:
         reply = await asyncio.to_thread(_call_gemini, body.message, body.history)
         if not reply or not str(reply).strip():
             raise RuntimeError("Empty model reply")
         return {"reply": reply}
+    except ResourceExhausted as e:
+        logger.warning("Gemini quota exceeded: %s", type(e).__name__)
+        return JSONResponse(status_code=429, content=_QUOTA_EXCEEDED_BODY)
+    except (Unauthenticated, PermissionDenied, Forbidden) as e:
+        logger.warning("Gemini API key or auth error: %s", type(e).__name__)
+        return JSONResponse(status_code=503, content=_INVALID_KEY_BODY)
+    except GoogleAPICallError as e:
+        if _is_quota_exceeded(e):
+            logger.warning("Gemini quota exceeded (GoogleAPICallError)")
+            return JSONResponse(status_code=429, content=_QUOTA_EXCEEDED_BODY)
+        if _is_auth_key_error(e):
+            logger.warning("Gemini auth error (GoogleAPICallError): %s", type(e).__name__)
+            return JSONResponse(status_code=503, content=_INVALID_KEY_BODY)
+        code = getattr(e, "code", None)
+        if code in (401, 403):
+            logger.warning("Gemini HTTP status on API call: %s", code)
+            return JSONResponse(status_code=503, content=_INVALID_KEY_BODY)
+        if code == 429:
+            logger.warning("Gemini HTTP 429 (GoogleAPICallError)")
+            return JSONResponse(status_code=429, content=_QUOTA_EXCEEDED_BODY)
+        logger.exception("Gemini GoogleAPICallError")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Unable to complete the chat request."},
+        )
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.RESOURCE_EXHAUSTED:
+            logger.warning("Gemini quota exceeded (gRPC)")
+            return JSONResponse(status_code=429, content=_QUOTA_EXCEEDED_BODY)
+        if e.code() in (
+            grpc.StatusCode.UNAUTHENTICATED,
+            grpc.StatusCode.PERMISSION_DENIED,
+        ):
+            logger.warning("Gemini auth error (gRPC): %s", e.code())
+            return JSONResponse(status_code=503, content=_INVALID_KEY_BODY)
+        logger.exception("Gemini gRPC error: %s", e.code())
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Unable to complete the chat request."},
+        )
+    except RuntimeError as e:
+        if "not configured" in str(e).lower() or "chat service" in str(e).lower():
+            return JSONResponse(status_code=503, content=_INVALID_KEY_BODY)
+        logger.exception("Chat RuntimeError")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Unable to complete the chat request."},
+        )
     except Exception:
         logger.exception("Chat request failed")
         return JSONResponse(

@@ -8,6 +8,7 @@ API key is read from GEMINI_API_KEY environment variable.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from typing import Literal
 

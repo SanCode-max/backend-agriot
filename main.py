@@ -36,9 +36,9 @@ def _cors_allow_origins() -> list[str]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if not os.environ.get("GEMINI_API_KEY"):
+    if not os.environ.get("GROQ_API_KEY"):
         logger.warning(
-            "WARNING: GEMINI_API_KEY is not set. Chat endpoint will not work."
+            "WARNING: GROQ_API_KEY is not set. Chat endpoint will not work."
         )
     os.makedirs("uploads", exist_ok=True)
     await ensure_indexes()
